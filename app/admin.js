@@ -11,6 +11,7 @@
 
 const views = require('./views');
 const guests = require('./guests');
+const saveTheDate = require('./savethedate');
 const { toCsv } = require('./csv');
 const { createBackup, listBackups } = require('./backup');
 const { schemaVersion } = require('./db');
@@ -215,6 +216,38 @@ function createAdmin(ctx) {
     return redirect(res, `/admin/guests?done=imported&imported=${added}&skipped=${skipped}`);
   }
 
+  // --- Save the date -------------------------------------------------------------------
+
+  function showSaveTheDate(res, session, { card, errors, done, status = 200 } = {}) {
+    page(
+      res,
+      views.saveTheDateFormPage({
+        card: card || saveTheDate.getCard(db, eventId),
+        errors,
+        done,
+        csrf: session.csrf_token,
+        eventName,
+        publicUrl: config.PUBLIC_URL,
+      }),
+      status
+    );
+  }
+
+  function postSaveTheDate(req, res, session, form) {
+    const input = Object.fromEntries(saveTheDate.FIELDS.map((f) => [f, form.get(f) || '']));
+    input.published = form.get('published') === '1';
+    const { std, errors } = saveTheDate.validateCard(input);
+    if (Object.keys(errors).length) return showSaveTheDate(res, session, { card: std, errors, status: 422 });
+    saveTheDate.saveCard(db, eventId, std);
+    ctx.log(`save-the-date saved (${std.published ? 'published' : 'not published'})`);
+    return redirect(res, '/admin/save-the-date?done=saved');
+  }
+
+  function previewSaveTheDate(res) {
+    const card = saveTheDate.getCard(db, eventId);
+    page(res, views.saveTheDatePage({ card, today: saveTheDate.todayIn(config.TIME_ZONE), publicUrl: config.PUBLIC_URL, preview: true }));
+  }
+
   function notFound(res, session) {
     page(res, views.messagePage('Not found', 'That page or guest does not exist.', { csrf: session.csrf_token, eventName, backHref: '/admin' }), 404);
   }
@@ -256,6 +289,8 @@ function createAdmin(ctx) {
       if (p === '/admin/guests/new') return showGuestForm(res, session, { mode: 'new', guest: emptyGuest() });
       if (p === '/admin/guests/export.csv') return exportCsv(res);
       if (p === '/admin/guests/import') return showImportForm(res, session);
+      if (p === '/admin/save-the-date') return showSaveTheDate(res, session, { done: url.searchParams.get('done') });
+      if (p === '/admin/save-the-date/preview') return previewSaveTheDate(res);
       if (guestMatch) {
         const guest = guests.getGuest(db, eventId, id);
         if (!guest) return notFound(res, session);
@@ -270,6 +305,7 @@ function createAdmin(ctx) {
       if (p === '/admin/guests/new') return postNewGuest(req, res, session, form);
       if (p === '/admin/guests/import') return postImportPreview(req, res, session, form);
       if (p === '/admin/guests/import/commit') return postImportCommit(req, res, session, form);
+      if (p === '/admin/save-the-date') return postSaveTheDate(req, res, session, form);
       if (guestMatch && guestMatch[2] === 'edit') return postEditGuest(req, res, session, form, id);
       if (guestMatch && guestMatch[2] === 'delete') return postDeleteGuest(req, res, session, id);
     }

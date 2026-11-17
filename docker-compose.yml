@@ -24,6 +24,8 @@ services:
       SIDE_A_LABEL: ${SIDE_A_LABEL:-Casey}
       SIDE_B_LABEL: ${SIDE_B_LABEL:-Dustin}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      TIME_ZONE: ${TIME_ZONE:-America/New_York}
+      PUBLIC_URL: ${PUBLIC_URL:-}
     volumes:
       - ./data:/data                   # SQLite file lives here on the NAS
     healthcheck:

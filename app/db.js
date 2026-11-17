@@ -111,6 +111,30 @@ const MIGRATIONS = [
       )`);
     },
   },
+  {
+    version: 4,
+    name: 'save-the-date card',
+    // One card per event. Starts unpublished, with the event name filled in,
+    // so /save-the-date shows nothing until it has been edited and published.
+    up(db) {
+      db.exec(`CREATE TABLE IF NOT EXISTS save_the_date (
+        event_id   INTEGER PRIMARY KEY REFERENCES events(id),
+        headline   TEXT NOT NULL DEFAULT 'Save the Date',
+        names      TEXT NOT NULL DEFAULT '',
+        event_date TEXT NOT NULL DEFAULT ''   -- YYYY-MM-DD (a calendar day, no time zone)
+          CHECK (event_date = '' OR event_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'),
+        location   TEXT NOT NULL DEFAULT '',
+        message    TEXT NOT NULL DEFAULT '',
+        published  INTEGER NOT NULL DEFAULT 0 CHECK (published IN (0, 1)),
+        updated_at TEXT NOT NULL               -- UTC ISO 8601
+      )`);
+      db.prepare(
+        `INSERT INTO save_the_date (event_id, names, message, updated_at)
+         SELECT id, name, 'Formal invitation to follow.', ? FROM events
+         WHERE id NOT IN (SELECT event_id FROM save_the_date)`
+      ).run(nowIso());
+    },
+  },
 ];
 
 const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;

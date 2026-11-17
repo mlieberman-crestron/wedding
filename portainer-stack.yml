@@ -35,6 +35,11 @@ services:
       # "true" only once the site is served over HTTPS; on plain HTTP a
       # Secure cookie is never sent back and login would not work.
       COOKIE_SECURE: "false"
+      # Time zone for the save-the-date countdown ("N days to go").
+      TIME_ZONE: "America/New_York"
+      # Address guests use to reach the site, e.g. https://casey.caseysplans.com
+      # Used in calendar entries. Leave empty while the site is LAN-only.
+      PUBLIC_URL: ""
     volumes:
       - /Volume1/docker/wedding/app:/app:ro   # code, read-only
       - /Volume1/docker/wedding/data:/data    # SQLite database

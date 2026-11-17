@@ -10,6 +10,7 @@
 'use strict';
 
 const { FIELD_LABELS, MAX_LENGTH, sideLabel } = require('./guests');
+const std = require('./savethedate');
 
 function h(value) {
   return String(value === null || value === undefined ? '' : value)
@@ -31,6 +32,7 @@ function layout(title, body, opts = {}) {
     <a href="/admin/guests">Guests</a>
     <a href="/admin/guests/import">Import</a>
     <a href="/admin/guests/export.csv">Export CSV</a>
+    <a href="/admin/save-the-date">Save the date</a>
     <form method="post" action="/admin/logout" class="inline">${csrfField(opts.csrf)}<button type="submit" class="link">Log out</button></form>
   </nav>`
     : '';
@@ -44,8 +46,8 @@ function layout(title, body, opts = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>${h(title)}${opts.eventName ? ' – ' + h(opts.eventName) : ''}</title>
   <link rel="stylesheet" href="/static/style.css">
-</head>
-<body>
+${opts.head || ''}</head>
+<body${opts.bodyClass ? ` class="${h(opts.bodyClass)}"` : ''}>
 ${header}<main>
 ${body}
 </main>
@@ -147,6 +149,7 @@ ${notice(message)}${notice(error, 'error')}
   <li><a href="/admin/guests/new">Add a guest</a></li>
   <li><a href="/admin/guests/import">Import guests from CSV</a></li>
   <li><a href="/admin/guests/export.csv">Export guests as CSV</a></li>
+  <li><a href="/admin/save-the-date">Save-the-date page</a></li>
 </ul>
 
 <h2>Backups</h2>
@@ -362,7 +365,86 @@ ${rows}
   );
 }
 
+// --- Save the date -------------------------------------------------------------------
+
+// The card itself. card = row from savethedate.getCard(); today = YYYY-MM-DD.
+// preview = true: shown to the admin, with a banner, whether published or not.
+function saveTheDatePage({ card, today, publicUrl, preview = false }) {
+  const hasDate = std.isValidDate(card.event_date);
+  const countdown = hasDate ? std.countdownText(card.event_date, today) : '';
+  const message = std
+    .messageParagraphs(card.message)
+    .map((lines) => `<p>${lines.map(h).join('<br>')}</p>`)
+    .join('\n    ');
+  const calendar = hasDate
+    ? `<p class="std-cal">Add to your calendar:
+    <a href="/save-the-date.ics">Apple / Outlook</a>
+    <span aria-hidden="true">&middot;</span>
+    <a href="${h(std.googleCalendarUrl(card, publicUrl))}" rel="noopener noreferrer" target="_blank">Google</a></p>`
+    : '';
+  const banner = preview
+    ? `<div class="std-preview" role="status">Preview &mdash; ${card.published ? 'this page is published' : 'not published yet; guests see &ldquo;Not found&rdquo;'}.
+  <a href="/admin/save-the-date">Back to editing</a></div>\n`
+    : '';
+  const title = card.names ? `${card.headline} – ${card.names}` : card.headline;
+  const description = [hasDate ? std.formatLongDate(card.event_date) : '', card.location].filter(Boolean).join(' · ');
+
+  return layout(
+    title,
+    `${banner}<article class="std-card">
+  <p class="std-headline">${h(card.headline)}</p>
+  <h1 class="std-names">${h(card.names)}</h1>
+  <div class="std-rule" aria-hidden="true"><span></span></div>
+  <p class="std-date">${hasDate ? `<time datetime="${h(card.event_date)}">${h(std.formatLongDate(card.event_date))}</time>` : 'Date to be announced'}</p>
+  ${card.location ? `<p class="std-location">${h(card.location)}</p>` : ''}
+  ${countdown ? `<p class="std-countdown">${h(countdown)}</p>` : ''}
+  ${message ? `<div class="std-message">\n    ${message}\n  </div>` : ''}
+  ${calendar}
+</article>`,
+    {
+      bodyClass: 'std',
+      // noindex: keep the wedding out of search engines.
+      head:
+        '  <meta name="robots" content="noindex, nofollow">\n' +
+        `  <meta property="og:title" content="${h(title)}">\n` +
+        (description ? `  <meta name="description" content="${h(description)}">\n  <meta property="og:description" content="${h(description)}">\n` : ''),
+    }
+  );
+}
+
+function saveTheDateFormPage({ card, errors = {}, csrf, eventName, done, publicUrl }) {
+  const err = (f) => (errors[f] ? `<span class="field-error">${h(errors[f])}</span>` : '');
+  const cls = (f) => (errors[f] ? ' class="has-error"' : '');
+  const input = (f, type = 'text', extra = '') =>
+    `<label${cls(f)}>${h(std.FIELD_LABELS[f])} <input type="${type}" name="${f}" value="${h(card[f])}" maxlength="${std.MAX_LENGTH[f]}"${extra}>${err(f)}</label>`;
+  const where = publicUrl ? `${publicUrl}/save-the-date` : '/save-the-date';
+  const status = card.published
+    ? `<strong>Published.</strong> Guests can see it at <a href="/save-the-date">${h(where)}</a>.`
+    : '<strong>Not published.</strong> Guests who open the page see &ldquo;Not found&rdquo;.';
+
+  return layout(
+    'Save the date',
+    `<h1>Save-the-date page</h1>
+${done === 'saved' ? notice('Saved.') : ''}${Object.keys(errors).length ? notice('Please correct the marked fields. Nothing was saved.', 'error') : ''}
+<p>${status} <a href="/admin/save-the-date/preview">Preview</a></p>
+<form method="post" action="/admin/save-the-date" class="stack">
+  ${csrfField(csrf)}
+  ${input('headline', 'text', ` placeholder="${h(std.DEFAULT_HEADLINE)}"`)}
+  ${input('names', 'text', ' placeholder="Casey &amp; Dustin"')}
+  ${input('event_date', 'date', ' placeholder="YYYY-MM-DD"')}
+  ${input('location', 'text', ' placeholder="City, State (the venue can come with the invitation)"')}
+  <label${cls('message')}>${h(std.FIELD_LABELS.message)}
+    <textarea name="message" rows="4" maxlength="${std.MAX_LENGTH.message}" class="prose">${h(card.message)}</textarea>
+    <span class="hint">A blank line starts a new paragraph.</span>${err('message')}</label>
+  <label class="check"><input type="checkbox" name="published" value="1"${card.published ? ' checked' : ''}> Published (guests can see the page)</label>
+  <div class="buttons"><button type="submit">Save</button> <a href="/admin/save-the-date/preview">Preview</a></div>
+</form>`,
+    { csrf, eventName }
+  );
+}
+
 module.exports = {
   h, layout, statusPage, messagePage, loginPage, adminHomePage,
   guestListPage, guestFormPage, deleteConfirmPage, importFormPage, importPreviewPage,
+  saveTheDatePage, saveTheDateFormPage,
 };

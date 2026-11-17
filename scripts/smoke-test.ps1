@@ -131,6 +131,10 @@ foreach ($p in @('/static/style.css', '/static/import.js')) {
     Test-Check "$p returns 200" ($r.StatusCode -eq 200) "HTTP $($r.StatusCode)"
 }
 
+# 4c. the save-the-date page answers: 200 when published, 404 when not (never a 500)
+$r = Get-Url '/save-the-date'
+Test-Check '/save-the-date returns 200 or 404' (($r.StatusCode -eq 200) -or ($r.StatusCode -eq 404)) "HTTP $($r.StatusCode)"
+
 # 5. /admin/guests without logging in -> redirect to the login page
 $r = Invoke-Http '/admin/guests' $null
 $ok = (($r.StatusCode -eq 302) -or ($r.StatusCode -eq 303)) -and $r.Location.EndsWith('/admin/login')

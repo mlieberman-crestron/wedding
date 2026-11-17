@@ -103,6 +103,11 @@ for p in /static/style.css /static/import.js; do
   check "$p returns 200" "$r" "HTTP $code"
 done
 
+# 4c. the save-the-date page answers: 200 when published, 404 when not (never a 500)
+code=$(fetch /save-the-date)
+if [ "$code" = 200 ] || [ "$code" = 404 ]; then r=0; else r=1; fi
+check "/save-the-date returns 200 or 404" "$r" "HTTP $code"
+
 # 5. /admin/guests without logging in -> redirect to the login page
 first_response=$(fetch_first /admin/guests)   # "STATUS LOCATION"
 code=${first_response%% *}

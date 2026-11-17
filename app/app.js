@@ -14,6 +14,7 @@
 //   perms.js   data folder ownership and switching away from root
 //   db.js      open SQLite + numbered schema migrations
 //   guests.js  guest validation, CSV import rules, guest database access
+//   savethedate.js  the save-the-date card: validation, calendar file, storage
 //   csv.js     CSV parsing and writing
 //   auth.js    admin password, sessions, CSRF tokens, login lockout
 //   admin.js   the /admin/* pages
@@ -34,6 +35,7 @@ const { openDatabase, migrate, schemaVersion } = require('./db');
 const { createAuth } = require('./auth');
 const { createAdmin } = require('./admin');
 const views = require('./views');
+const saveTheDate = require('./savethedate');
 const { send, sendHtml, serveStatic } = require('./web');
 
 const STARTED_AT = new Date();
@@ -109,6 +111,29 @@ function handleHome(res) {
   sendHtml(res, 200, html);
 }
 
+// The save-the-date card. Until it is published, guests get a plain 404 so
+// the page does not reveal that anything is planned.
+const notFound = (res) => send(res, 404, 'text/plain; charset=utf-8', 'Not found\n');
+
+function handleSaveTheDate(res) {
+  const card = saveTheDate.getCard(db, EVENT_ID);
+  if (!card || !card.published) return notFound(res);
+  const html = views.saveTheDatePage({ card, today: saveTheDate.todayIn(config.TIME_ZONE), publicUrl: config.PUBLIC_URL });
+  // no-cache: guests always see the latest wording after an edit.
+  return sendHtml(res, 200, html, { 'Cache-Control': 'no-cache' });
+}
+
+function handleSaveTheDateIcs(res) {
+  const card = saveTheDate.getCard(db, EVENT_ID);
+  if (!card || !card.published || !saveTheDate.isValidDate(card.event_date)) return notFound(res);
+  const url = config.PUBLIC_URL ? `${config.PUBLIC_URL}/save-the-date` : '';
+  const body = saveTheDate.buildIcs(card, { eventId: EVENT_ID, url });
+  return send(res, 200, 'text/calendar; charset=utf-8', body, {
+    'Content-Disposition': 'attachment; filename="save-the-date.ics"',
+    'Cache-Control': 'no-cache',
+  });
+}
+
 function handleHealth(res) {
   const body = {
     status: 'ok',
@@ -137,9 +162,11 @@ async function route(req, res, url) {
   const p = url.pathname;
   if (req.method === 'GET' && p === '/') return handleHome(res);
   if (req.method === 'GET' && p === '/health') return handleHealth(res);
+  if (req.method === 'GET' && (p === '/save-the-date' || p === '/save-the-date/')) return handleSaveTheDate(res);
+  if (req.method === 'GET' && p === '/save-the-date.ics') return handleSaveTheDateIcs(res);
   if (req.method === 'GET' && serveStatic(res, p)) return undefined;
   if (p === '/admin' || p.startsWith('/admin/')) return handleAdmin(req, res, url);
-  return send(res, 404, 'text/plain; charset=utf-8', 'Not found\n');
+  return notFound(res);
 }
 
 const server = http.createServer(async (req, res) => {

@@ -49,7 +49,7 @@ form.narrow { max-width: 20rem; }
 form.stack label { display: flex; flex-direction: column; gap: 0.2rem; font-weight: 600; }
 form.stack label.check { flex-direction: row; align-items: center; gap: 0.5rem; font-weight: normal; }
 form.inline { display: inline; margin: 0; }
-input[type=text], input[type=email], input[type=tel], input[type=password], input[type=search], select, textarea {
+input[type=text], input[type=email], input[type=tel], input[type=password], input[type=search], input[type=date], select, textarea {
   font: inherit;
   font-weight: normal;
   padding: 0.45rem 0.5rem;
@@ -59,6 +59,7 @@ input[type=text], input[type=email], input[type=tel], input[type=password], inpu
   background: #fff;
 }
 textarea { font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem; }
+textarea.prose { font-family: inherit; font-size: 1rem; }
 .has-error input, .has-error select, .has-error textarea { border-color: #c01c28; }
 .field-error { color: #c01c28; font-weight: normal; font-size: 0.9rem; }
 
@@ -96,3 +97,144 @@ tr.status-duplicate td { background: #eeeeee; color: #555; }
 [hidden] { display: none !important; }
 
 code { background: #eee; padding: 0 0.25rem; border-radius: 3px; }
+
+/* ---------------------------------------------------------------------------
+   Save-the-date card (public page, body.std). Serif type, ivory paper, one
+   accent colour. System fonts only: the security policy allows no web fonts.
+   --------------------------------------------------------------------------- */
+body.std {
+  --std-paper: #fffdf8;
+  --std-bg: #efe9df;
+  --std-ink: #2f2a26;
+  --std-muted: #6f655c;
+  --std-accent: #8a6d3b;
+  background: var(--std-bg);
+  color: var(--std-ink);
+  font-family: "Cormorant Garamond", Garamond, "EB Garamond", Georgia, "Times New Roman", serif;
+  min-height: 100vh;
+}
+body.std main {
+  max-width: none;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  gap: 1rem;
+}
+.std-card {
+  background: var(--std-paper);
+  width: 100%;
+  max-width: 34rem;
+  padding: 3.5rem 2rem 2.5rem;
+  text-align: center;
+  border: 1px solid #e2d8c8;
+  outline: 1px solid #e2d8c8;
+  outline-offset: -0.75rem; /* a thin inner frame, like a printed card */
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.06), 0 12px 32px rgba(60, 40, 20, 0.10);
+}
+.std-headline {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--std-accent);
+  padding-left: 0.35em; /* balance the trailing letter-spacing */
+}
+.std-names {
+  margin: 1.25rem 0 0;
+  font-size: clamp(2.2rem, 9vw, 3.4rem);
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+.std-rule {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 1.75rem auto;
+  max-width: 14rem;
+}
+.std-rule::before, .std-rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--std-accent);
+  opacity: 0.6;
+}
+.std-rule span {
+  width: 0.45rem;
+  height: 0.45rem;
+  transform: rotate(45deg);
+  border: 1px solid var(--std-accent);
+}
+.std-date {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
+}
+.std-location {
+  margin: 0.4rem 0 0;
+  font-size: 1.1rem;
+  color: var(--std-muted);
+}
+.std-countdown {
+  display: inline-block;
+  margin: 1.5rem 0 0;
+  padding: 0.2rem 0.9rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--std-accent);
+  border-top: 1px solid #e2d8c8;
+  border-bottom: 1px solid #e2d8c8;
+}
+.std-message {
+  margin: 1.75rem auto 0;
+  max-width: 26rem;
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--std-muted);
+}
+.std-message p { margin: 0 0 0.6rem; }
+.std-cal {
+  margin: 2rem 0 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.85rem;
+  color: var(--std-muted);
+}
+.std-cal a { color: var(--std-accent); margin: 0 0.15rem; }
+.std-preview {
+  width: 100%;
+  max-width: 34rem;
+  padding: 0.6rem 0.8rem;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.9rem;
+  background: #fff8e1;
+  border: 1px solid #f0d58c;
+  border-radius: 4px;
+}
+@media (max-width: 30rem) {
+  .std-card { padding: 2.75rem 1.25rem 2rem; }
+}
+@media (prefers-color-scheme: dark) {
+  body.std {
+    --std-paper: #24201c;
+    --std-bg: #171411;
+    --std-ink: #f1e9dc;
+    --std-muted: #bfb3a3;
+    --std-accent: #d2b07a;
+  }
+  .std-card { border-color: #3a332b; outline-color: #3a332b; box-shadow: none; }
+  .std-countdown { border-color: #3a332b; }
+  .std-preview { background: #3a3220; border-color: #6b5a2c; color: #f1e9dc; }
+  .std-preview a { color: #d2b07a; }
+}
+@media print {
+  body.std { background: #fff; }
+  .std-card { box-shadow: none; }
+  .std-cal, .std-preview { display: none; }
+}

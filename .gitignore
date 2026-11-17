@@ -1,5 +1,6 @@
 # Runtime data (SQLite database, backups) lives on the NAS only
 data/
+data-dev/
 *.db
 *.db-journal
 *.db-wal

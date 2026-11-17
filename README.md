@@ -1,4 +1,4 @@
-# Wedding Platform 0.2.0 – guest list
+# Wedding Platform 0.3.0 (in progress) – guest list and save-the-date
 
 A small private web app for running a wedding's guest list, deployed as one
 Docker container on the TerraMaster NAS. Version 0.2.0 ("Sprint 1") adds a
@@ -176,6 +176,35 @@ when you are not logged in. A login lasts 12 hours; **Log out** ends it.
 - **Import** (`/admin/guests/import`) – see below.
 
 The pages work on a phone (wide tables scroll sideways).
+
+## Save-the-date page (0.3.0)
+
+Guests see the card at **`/save-the-date`**. Edit it under **Admin → Save the
+date** (`/admin/save-the-date`):
+
+- **Headline** (default "Save the Date"), **Names**, **Wedding date**,
+  **Place** (city is enough; the venue can come with the invitation) and a
+  short **Message** (a blank line starts a new paragraph).
+- **Published** – until it is ticked, `/save-the-date` answers a plain
+  404 "Not found", so nothing is revealed early. Names and date are required
+  before it can be published. **Preview** (`/admin/save-the-date/preview`)
+  shows the card while logged in, published or not.
+- The card shows a countdown ("208 days to go", in the `TIME_ZONE` setting,
+  default `America/New_York`) and **Add to your calendar** links: a
+  `/save-the-date.ics` file (Apple Calendar, Outlook) and Google Calendar.
+- The page tells search engines not to index it (`noindex`).
+- New in the stack: `TIME_ZONE` and `PUBLIC_URL` (the address guests use;
+  leave empty while the site is LAN-only). Both have safe defaults, so an
+  older stack keeps working.
+
+Database: migration 4 adds the `save_the_date` table and fills in the event
+name, unpublished.
+
+### Running it on the PC
+
+`node scripts/dev-server.js` starts the app at http://localhost:3088 with its
+own database in `data-dev\` (ignored by Git) and the local test password from
+that script. It never touches the NAS data.
 
 ## CSV import
 

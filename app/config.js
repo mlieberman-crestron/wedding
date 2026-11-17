@@ -22,11 +22,17 @@ const DATA_DIR = envString('DATA_DIR', '/data');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 module.exports = {
-  VERSION: '0.2.1',
+  VERSION: '0.3.0-dev',
   APP_NAME: 'Wedding Platform',
   PORT: Number(envString('PORT', '3000')),
   APP_ENV: envString('APP_ENV', 'dev'),
   EVENT_NAME: envString('EVENT_NAME', 'Casey & Dustin'),
+  // Time zone for "today" (the save-the-date countdown). IANA name.
+  TIME_ZONE: envString('TIME_ZONE', 'America/New_York'),
+  // Address guests use to reach the site, e.g. https://casey.caseysplans.com
+  // (no trailing slash). Used in calendar entries and, later, in emails.
+  // Empty = leave links out.
+  PUBLIC_URL: envString('PUBLIC_URL', '').replace(/\/+$/, ''),
 
   // Storage
   DATA_DIR,
