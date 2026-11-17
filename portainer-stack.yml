@@ -1,0 +1,48 @@
+# NO-BUILD variant for Portainer -> Stacks -> Add stack -> Web editor.
+# Stack name: wedding
+#
+# Uses the stock official Node image and runs app.js straight from the NAS
+# folder, so no image build and no SSH are needed.
+# Prerequisite: the project folder has been copied to /Volume1/docker/wedding
+# (Windows: \\192.168.2.40\docker\wedding) and contains app/ (app.js and
+# the other modules) and data/.
+#
+# Settings are inline because the Portainer web editor has no .env file.
+# To change them, edit here and click "Update the stack". A plain container
+# restart does NOT pick up changed settings.
+
+services:
+  web:
+    image: node:26-alpine              # Active LTS; node:sqlite works without flags
+    restart: unless-stopped
+    working_dir: /app
+    command: node /app/app.js
+    ports:
+      - "8088:3000"                    # NAS port : container port
+    environment:
+      APP_ENV: dev
+      EVENT_NAME: "Casey & Dustin"
+      PORT: "3000"
+      DATA_DIR: /data
+      NODE_ENV: production
+      # Admin password for /admin. While it is CHANGE_ME (or empty) the admin
+      # pages are disabled. Replace it with a real password before deploying.
+      # Note: anyone who can open this stack in Portainer can read it.
+      ADMIN_PASSWORD: "CHANGE_ME"
+      # How the two sides of the guest list are labelled.
+      SIDE_A_LABEL: "Casey"
+      SIDE_B_LABEL: "Dustin"
+      # "true" only once the site is served over HTTPS; on plain HTTP a
+      # Secure cookie is never sent back and login would not work.
+      COOKIE_SECURE: "false"
+    volumes:
+      - /Volume1/docker/wedding/app:/app:ro   # code, read-only
+      - /Volume1/docker/wedding/data:/data    # SQLite database
+    # The container starts as root; app.js chowns /data to the node user
+    # (uid 1000) and then switches to that user. See app/perms.js.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

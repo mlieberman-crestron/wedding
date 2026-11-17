@@ -1,0 +1,15 @@
+First Name,Last Name,Household,E-mail,Phone,Guest of,Notes,Table
+Penny,Farthing,"Farthing, Penny & Bob",penny@example.com,555-0101,Casey,Vegetarian,3
+Bob,Farthing,"Farthing, Penny & Bob",bob@example.com,555-0102,casey,,3
+Robin,Banks,Banks family,robin@example.org,,Dustin,"Asked for a ""quiet"" table",5
+Sandy,Shore,,,(555) 0104,DUSTIN,No email on file,5
+Ella,Vator,Vator household,ella.vator@example,555-0105,both,,1
+Justin,Case,,justin@example.net,555-0106,a,,2
+Anita,Break,,anita@example.net,,B,"Two-line note: first line
+second line",2
+Mike,Rophone,Rophone,mike@example.com,555-0108,bride,Plays in the band,
+Penny,Farthing,"Farthing, Penny & Bob",PENNY@example.com,555-0101,Casey,Listed twice by mistake,3
+,,No Name Household,nobody@example.com,,,Row without a name,
+Paige,Turner,,paige@example.com,+1 555 0111,Both,,4
+Al,Dente,"Dente, Al",al@example.com,555-0112,,=1+1 looks like a formula,4
+Rhoda,Bout,,rhoda@example.com,,dustin,,

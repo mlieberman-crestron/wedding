@@ -1,0 +1,98 @@
+/* Wedding Platform - one small stylesheet for every page. */
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  color: #222;
+  background: #fafafa;
+  line-height: 1.45;
+}
+
+header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  padding: 0.75rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #ddd;
+}
+header .event { font-weight: 600; }
+
+.admin-nav { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; align-items: center; }
+
+main { padding: 1rem; max-width: 72rem; }
+
+h1 { font-size: 1.5rem; margin: 0.5rem 0 1rem; }
+h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
+
+a { color: #1a5fb4; }
+
+table { border-collapse: collapse; background: #fff; }
+th, td { text-align: left; padding: 0.4rem 0.75rem 0.4rem 0; vertical-align: top; }
+thead th { border-bottom: 2px solid #ccc; white-space: nowrap; }
+tbody tr { border-bottom: 1px solid #eee; }
+td.num, th.num { text-align: right; }
+td.actions { white-space: nowrap; }
+td.actions a + a { margin-left: 0.75rem; }
+table.kv th { padding-right: 1.5rem; }
+
+/* Wide tables scroll sideways on a phone instead of squashing. */
+.table-wrap { overflow-x: auto; max-width: 100%; }
+.table-wrap table { width: 100%; }
+
+/* Forms */
+form.stack { display: flex; flex-direction: column; gap: 0.8rem; max-width: 36rem; }
+form.narrow { max-width: 20rem; }
+form.stack label { display: flex; flex-direction: column; gap: 0.2rem; font-weight: 600; }
+form.stack label.check { flex-direction: row; align-items: center; gap: 0.5rem; font-weight: normal; }
+form.inline { display: inline; margin: 0; }
+input[type=text], input[type=email], input[type=tel], input[type=password], input[type=search], select, textarea {
+  font: inherit;
+  font-weight: normal;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #bbb;
+  border-radius: 4px;
+  width: 100%;
+  background: #fff;
+}
+textarea { font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem; }
+.has-error input, .has-error select, .has-error textarea { border-color: #c01c28; }
+.field-error { color: #c01c28; font-weight: normal; font-size: 0.9rem; }
+
+form.search { display: flex; gap: 0.5rem; max-width: 32rem; margin-bottom: 1rem; }
+
+button, a.button {
+  font: inherit;
+  padding: 0.45rem 1rem;
+  border: 1px solid #1a5fb4;
+  border-radius: 4px;
+  background: #1a5fb4;
+  color: #fff;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+button:disabled { opacity: 0.5; cursor: default; }
+button.danger { background: #c01c28; border-color: #c01c28; }
+button.link { background: none; border: none; color: #1a5fb4; padding: 0; text-decoration: underline; }
+.buttons { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+
+/* Messages */
+.notice { padding: 0.6rem 0.8rem; border-radius: 4px; background: #e6f4ea; border: 1px solid #9fd3ac; }
+.notice.error { background: #fdecea; border-color: #f1a9a0; }
+.hint { color: #666; font-size: 0.9rem; }
+.counts { margin: 0 0 1rem; }
+ul.links li { margin: 0.3rem 0; }
+
+/* Import preview row colours */
+tr.status-warning td { background: #fff8e1; }
+tr.status-error td { background: #fdecea; }
+tr.status-duplicate td { background: #eeeeee; color: #555; }
+
+.file-picker { display: flex; flex-direction: column; gap: 0.25rem; }
+[hidden] { display: none !important; }
+
+code { background: #eee; padding: 0 0.25rem; border-radius: 3px; }

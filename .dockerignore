@@ -1,0 +1,8 @@
+# Keep the build context to what the image needs (only app/ is copied).
+data
+.env
+*.md
+scripts
+portainer-stack.yml
+docker-compose.yml
+.git

@@ -1,0 +1,17 @@
+# Runtime data (SQLite database, backups) lives on the NAS only
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Local settings and secrets
+.env
+
+# Release zips and editor/OS clutter
+*.zip
+node_modules/
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
