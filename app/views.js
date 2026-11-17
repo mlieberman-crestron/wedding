@@ -69,7 +69,8 @@ function formatBytes(n) {
 
 // --- Public pages ------------------------------------------------------------
 
-// The 0.1.0 status page. The smoke tests read <span id="visits">N</span>.
+// The status page (/status; it was / until 0.3.0). The smoke tests read
+// <span id="visits">N</span>.
 function statusPage(info, visits) {
   const rows = [
     ['Version', info.version],
@@ -111,7 +112,7 @@ variable <code>ADMIN_PASSWORD</code> to a real password (not empty and not
   <li>docker compose: set <code>ADMIN_PASSWORD=...</code> in <code>.env</code> and run
       <code>sh scripts/deploy.sh</code>.</li>
 </ul>
-<p><a href="/">Back to the status page</a></p>`,
+<p><a href="/status">Back to the status page</a></p>`,
       { eventName }
     );
   }
@@ -127,7 +128,7 @@ ${lockedMsg}${notice(error, 'error')}
   <label>Password <input type="password" name="password" autocomplete="current-password" required autofocus></label>
   <button type="submit">Log in</button>
 </form>
-<p><a href="/">Back to the status page</a></p>`,
+<p><a href="/status">Back to the status page</a></p>`,
     { eventName }
   );
 }

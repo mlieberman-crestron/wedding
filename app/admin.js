@@ -15,7 +15,7 @@ const saveTheDate = require('./savethedate');
 const { toCsv } = require('./csv');
 const { createBackup, listBackups } = require('./backup');
 const { schemaVersion } = require('./db');
-const { sendHtml, send, redirect, readForm } = require('./web');
+const { sendHtml, send, redirect, readForm, clientIp: requestIp } = require('./web');
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
@@ -27,9 +27,11 @@ function createAdmin(ctx) {
 
   const page = (res, html, status = 200) => sendHtml(res, status, html, NO_STORE);
 
-  // Client address used for the login lockout. Note: behind Docker's port
-  // publishing this may be the Docker gateway address for every client.
-  const clientIp = (req) => req.socket.remoteAddress || 'unknown';
+  // Client address used for the login lockout. Behind the Cloudflare Tunnel
+  // (TRUST_PROXY=true) this is the visitor's real address from Cloudflare;
+  // otherwise the connection's address (which, behind Docker's port
+  // publishing, may be the Docker gateway for every LAN client).
+  const clientIp = (req) => requestIp(req, config.TRUST_PROXY);
 
   // Read the guest form fields from a POST body.
   const guestFromForm = (form) => {
@@ -74,11 +76,11 @@ function createAdmin(ctx) {
     }
     auth.throttle.reset(ip);
     ctx.log(`admin login from ${ip}`);
-    return redirect(res, '/admin', { 'Set-Cookie': auth.createSession() });
+    return redirect(res, '/admin', { 'Set-Cookie': auth.createSession(req) });
   }
 
   function postLogout(req, res, session) {
-    return redirect(res, '/admin/login', { 'Set-Cookie': auth.destroySession(session) });
+    return redirect(res, '/admin/login', { 'Set-Cookie': auth.destroySession(session, req) });
   }
 
   // --- Admin home and backups ----------------------------------------------------------

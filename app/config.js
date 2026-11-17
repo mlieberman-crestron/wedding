@@ -22,7 +22,7 @@ const DATA_DIR = envString('DATA_DIR', '/data');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 module.exports = {
-  VERSION: '0.3.0-dev',
+  VERSION: '0.3.0',
   APP_NAME: 'Wedding Platform',
   PORT: Number(envString('PORT', '3000')),
   APP_ENV: envString('APP_ENV', 'dev'),
@@ -49,9 +49,17 @@ module.exports = {
   ADMIN_PASSWORD,
   ADMIN_ENABLED: ADMIN_PASSWORD.trim() !== '' && ADMIN_PASSWORD !== PASSWORD_PLACEHOLDER,
   PASSWORD_PLACEHOLDER,
-  // Only send cookies with the Secure flag when the site is served over HTTPS;
-  // on the plain-HTTP home LAN a Secure cookie would never be sent back.
-  COOKIE_SECURE: envString('COOKIE_SECURE', 'false').toLowerCase() === 'true',
+  // Secure flag on cookies: 'auto' (default) = only on requests that came in
+  // over HTTPS (through Cloudflare), so the login works both at
+  // https://caseyanddustin.com and at http://192.168.2.40:8088 on the LAN.
+  // 'true' = always (login over plain HTTP then fails), 'false' = never.
+  COOKIE_SECURE: (() => {
+    const v = envString('COOKIE_SECURE', 'auto').toLowerCase();
+    return v === 'true' ? true : v === 'false' ? false : 'auto';
+  })(),
+  // TRUST_PROXY=true: the app runs behind the Cloudflare Tunnel; take the
+  // visitor's address from CF-Connecting-IP (used for the login lockout).
+  TRUST_PROXY: envString('TRUST_PROXY', 'false').toLowerCase() === 'true',
   SESSION_HOURS: 12,
   LOGIN_MAX_FAILURES: 5, // failed logins per client IP before a lockout
   LOGIN_LOCK_SECONDS: 60,

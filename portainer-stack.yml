@@ -10,6 +10,12 @@
 # Settings are inline because the Portainer web editor has no .env file.
 # To change them, edit here and click "Update the stack". A plain container
 # restart does NOT pick up changed settings.
+#
+# Two containers:
+#   web     the app; on the LAN at http://192.168.2.40:8088
+#   tunnel  Cloudflare Tunnel: makes the app reachable at
+#           https://caseyanddustin.com without opening any router port.
+#           It connects OUT to Cloudflare and forwards to http://web:3000.
 
 services:
   web:
@@ -32,14 +38,18 @@ services:
       # How the two sides of the guest list are labelled.
       SIDE_A_LABEL: "Casey"
       SIDE_B_LABEL: "Dustin"
-      # "true" only once the site is served over HTTPS; on plain HTTP a
-      # Secure cookie is never sent back and login would not work.
-      COOKIE_SECURE: "false"
+      # Secure cookies: "auto" = only for visits over HTTPS (through the
+      # tunnel), so the admin login works both on https://caseyanddustin.com
+      # and on the LAN address. "true" = always, "false" = never.
+      COOKIE_SECURE: "auto"
+      # "true": requests come through the Cloudflare Tunnel; use the visitor's
+      # real address (CF-Connecting-IP) for the login lockout.
+      TRUST_PROXY: "true"
       # Time zone for the save-the-date countdown ("N days to go").
       TIME_ZONE: "America/New_York"
-      # Address guests use to reach the site, e.g. https://casey.caseysplans.com
-      # Used in calendar entries. Leave empty while the site is LAN-only.
-      PUBLIC_URL: ""
+      # Address guests use to reach the site (no trailing slash). Used in
+      # calendar entries and emails. Empty = leave links out.
+      PUBLIC_URL: "https://caseyanddustin.com"
     volumes:
       - /Volume1/docker/wedding/app:/app:ro   # code, read-only
       - /Volume1/docker/wedding/data:/data    # SQLite database
@@ -51,3 +61,17 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+
+  tunnel:
+    # Cloudflare's connector. Pin a version (e.g. cloudflare/cloudflared:2025.x.y)
+    # once it runs; :latest is fine to start with.
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      # Token from Cloudflare: Zero Trust > Networks > Tunnels > wedding-nas.
+      # It is a secret (anyone with it can serve this hostname): paste it here
+      # in Portainer only, never into the Git copy of this file.
+      TUNNEL_TOKEN: "PASTE_TUNNEL_TOKEN_HERE"
+    depends_on:
+      - web

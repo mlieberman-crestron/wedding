@@ -20,6 +20,7 @@
 
 const crypto = require('node:crypto');
 const { nowIso } = require('./db');
+const { isHttps } = require('./web');
 
 const SESSION_COOKIE = 'wsid';
 const LOGIN_CSRF_COOKIE = 'wlogin';
@@ -83,7 +84,10 @@ function createLoginThrottle({ maxFailures, lockSeconds }) {
 // --- Sessions ------------------------------------------------------------------
 
 // options: { password, enabled, cookieSecure, sessionHours, maxFailures, lockSeconds }
+// cookieSecure: true, false, or 'auto' (Secure only when this request came
+// in over HTTPS; see web.isHttps).
 function createAuth(db, options) {
+  const secureFor = (req) => (options.cookieSecure === 'auto' ? Boolean(req && isHttps(req)) : Boolean(options.cookieSecure));
   const maxAgeSeconds = options.sessionHours * 3600;
   const throttle = createLoginThrottle(options);
 
@@ -101,12 +105,12 @@ function createAuth(db, options) {
     },
 
     // Returns the Set-Cookie value for the new session.
-    createSession() {
+    createSession(req) {
       purgeExpired.run(nowIso());
       const token = randomToken();
       const expires = new Date(Date.now() + maxAgeSeconds * 1000).toISOString();
       insertSession.run(sha256(token).toString('hex'), randomToken(), nowIso(), expires);
-      return cookie(SESSION_COOKIE, token, { maxAgeSeconds, secure: options.cookieSecure });
+      return cookie(SESSION_COOKIE, token, { maxAgeSeconds, secure: secureFor(req) });
     },
 
     // The valid session for this request, or null. Expired sessions do not match.
@@ -118,9 +122,9 @@ function createAuth(db, options) {
     },
 
     // Returns the Set-Cookie value that removes the cookie.
-    destroySession(session) {
+    destroySession(session, req) {
       if (session) deleteSession.run(session.id);
-      return cookie(SESSION_COOKIE, '', { maxAgeSeconds: 0, secure: options.cookieSecure });
+      return cookie(SESSION_COOKIE, '', { maxAgeSeconds: 0, secure: secureFor(req) });
     },
 
     checkCsrf(session, submitted) {
@@ -133,7 +137,7 @@ function createAuth(db, options) {
     loginToken(req) {
       const existing = parseCookies(req.headers.cookie)[LOGIN_CSRF_COOKIE];
       const token = existing && /^[A-Za-z0-9_-]{43}$/.test(existing) ? existing : randomToken();
-      return { token, setCookie: cookie(LOGIN_CSRF_COOKIE, token, { maxAgeSeconds: 3600, secure: options.cookieSecure }) };
+      return { token, setCookie: cookie(LOGIN_CSRF_COOKIE, token, { maxAgeSeconds: 3600, secure: secureFor(req) }) };
     },
     checkLoginCsrf(req, submitted) {
       const fromCookie = parseCookies(req.headers.cookie)[LOGIN_CSRF_COOKIE];

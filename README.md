@@ -1,9 +1,12 @@
-# Wedding Platform 0.3.0 (in progress) – guest list and save-the-date
+# Wedding Platform 0.3.0 – guest list, save-the-date, Cloudflare Tunnel
 
 A small private web app for running a wedding's guest list, deployed as one
 Docker container on the TerraMaster NAS. Version 0.2.0 ("Sprint 1") adds a
 password-protected admin area with a guest list, CSV import/export and
-backups, on top of the 0.1.0 status page (`/`) and health check (`/health`).
+backups, on top of the 0.1.0 status page and health check (`/health`).
+Version 0.3.0 adds the save-the-date card, which becomes the front page
+(`/`), and publishing through a Cloudflare Tunnel at
+https://caseyanddustin.com. The status page moved to `/status`.
 
 - Node.js only, no npm packages and no build step: only built-in modules
   (`node:http`, `node:sqlite`, `node:crypto`, ...). Runs on Node 26 (target)
@@ -45,8 +48,10 @@ data/                   created at first start; holds app.db and backups/
 The code is CommonJS (`require` / `module.exports`): the mounted `app` folder
 has no `package.json`, and without one Node treats `.js` files as CommonJS.
 
-URLs: `http://192.168.2.40:8088/` (status page), `/health` (JSON),
-`/admin` (admin area).
+URLs: `http://192.168.2.40:8088/` (save-the-date card, 404 until
+published), `/status` (status page), `/health` (JSON), `/admin` (admin
+area). From the internet: https://caseyanddustin.com (see
+[Publishing with a Cloudflare Tunnel](#publishing-with-a-cloudflare-tunnel)).
 
 Use **one** deployment path at a time. Both create a project named `wedding`
 with a container `wedding-web-1`; remove one before switching to the other.
@@ -86,7 +91,7 @@ Nothing is deleted.
    powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -AdminPassword 'your password'
    ```
 
-   All 10 checks should PASS, and the **Visits** number continues from where
+   All checks should PASS (12 in 0.3.0), and the **Visits** number continues from where
    0.1.0 left off.
 5. **Try it.** Open http://192.168.2.40:8088/admin, log in, click
    **Create backup now** (so you can undo the experiment), then go to
@@ -127,7 +132,10 @@ wedding → **Editor**, then **Update the stack**.
 | `ADMIN_PASSWORD` | `CHANGE_ME`      | admin password; empty or `CHANGE_ME` = admin disabled |
 | `SIDE_A_LABEL`   | `Casey`          | label for side "a" of the guest list |
 | `SIDE_B_LABEL`   | `Dustin`         | label for side "b" |
-| `COOKIE_SECURE`  | `false`          | `true` only once the site is served over HTTPS |
+| `COOKIE_SECURE`  | `auto`           | Secure cookies: `auto` = only on HTTPS visits, `true` = always, `false` = never |
+| `TRUST_PROXY`    | `false` (stack: `true`) | behind the tunnel: take the visitor's address from Cloudflare (`CF-Connecting-IP`) |
+| `TIME_ZONE`      | `America/New_York` | time zone for the save-the-date countdown |
+| `PUBLIC_URL`     | empty (stack: `https://caseyanddustin.com`) | address guests use; put into calendar entries and emails |
 
 ### Choosing the admin password
 
@@ -416,24 +424,58 @@ a NAS user, not your Windows user) and is slow. Two options:
    `C:\Projects\wedding`, work and commit there, and copy the files to `Z:\wedding`
    to deploy.
 
+## Publishing with a Cloudflare Tunnel
+
+The `tunnel` container in the stack (`cloudflare/cloudflared`) connects
+**out** to Cloudflare and forwards visitors to `http://web:3000`. No router
+port is opened and the home IP address is not revealed; Cloudflare provides
+the HTTPS certificate. Domains (registered at Cloudflare): caseyanddustin.com
+(the wedding), caseysplans.com (the business, later), caseyplans.com
+(redirect to caseysplans.com).
+
+One-time setup in the Cloudflare dashboard (https://dash.cloudflare.com):
+
+1. **Zero Trust** (left menu). First time: choose a team name and the
+   **Free** plan.
+2. **Networks → Tunnels → Create a tunnel → Cloudflared**, name
+   `wedding-nas`. On the install page pick **Docker** and copy only the
+   token (the long value after `--token`). It is a secret.
+3. **Public hostname**: subdomain empty, domain `caseyanddustin.com`,
+   type `HTTP`, URL `web:3000`. Add a second one for `www` with the
+   same target.
+4. Portainer → Stacks → wedding → Editor: paste the new stack, put the token
+   into `TUNNEL_TOKEN`, put the real `ADMIN_PASSWORD` back, **Update the
+   stack**. The tunnel shows **Healthy** in Cloudflare within a minute.
+5. **Protect the admin area: Access → Applications → Add an application →
+   Self-hosted.** Name `Wedding admin`, domain `caseyanddustin.com`, path
+   `admin`. Policy: Allow, rule *Emails* = your and Ruth's addresses. Login
+   method: **One-time PIN**. Now only those addresses even see the admin
+   login page from the internet (the admin password is still needed).
+6. Optional: Redirect rule `caseyplans.com/*` → `https://caseysplans.com/$1`.
+
+Check: https://caseyanddustin.com shows the card (or 404 until it is
+published), https://caseyanddustin.com/health answers `{"status":"ok",...}`,
+and https://caseyanddustin.com/admin asks for the email PIN first.
+
 ## Security notes
 
 - **One shared password.** Anyone who knows `ADMIN_PASSWORD` has full
   access; there are no separate users. The password sits in plain text in the
   Portainer stack definition (anyone with Portainer access can read it) and,
   for Path B, in `.env`.
-- **Plain HTTP on the LAN.** The password, the session cookie and all guest
-  data travel unencrypted over the home network. Anyone able to watch that
-  traffic (e.g. on the Wi-Fi) could read them. This is acceptable only on a
-  trusted home network.
-- **Do not expose this to the internet** (port forwarding, etc.) until it is
-  served over HTTPS (for example behind a reverse proxy with a certificate);
-  then set `COOKIE_SECURE=true`.
+- **Plain HTTP on the LAN.** At http://192.168.2.40:8088 the password, the
+  session cookie and all guest data travel unencrypted over the home
+  network. Use https://caseyanddustin.com/admin when you can.
+- **Internet access only through the Cloudflare Tunnel.** Never forward a
+  router port to 8088. Through the tunnel everything is HTTPS, and
+  `/admin` should be behind Cloudflare Access (see below).
 - **Login lockout.** After 5 wrong passwords from one address, that address
   is locked out for 60 seconds (held in memory; a restart clears it).
-  Depending on how Docker forwards the port, the app may see the same
-  address (the Docker gateway) for every client, so the lockout can then
-  apply to everyone, including you: just wait a minute.
+  Through the tunnel (`TRUST_PROXY=true`) the address is the visitor's own,
+  from Cloudflare. On the LAN the app may see the Docker gateway address for
+  every client, so a lockout there can apply to everyone: wait a minute.
+  With `TRUST_PROXY=true` someone on the LAN could fake the header to
+  dodge the lockout; that is accepted for a home network.
 - **Changing the password** does not end existing logins; they stay valid
   until they expire (at most 12 hours after they were made).
 - What is in place: constant-time password comparison, random session tokens
@@ -463,7 +505,7 @@ delete them.
 **Login says "Wrong password" although it is right**: check for a `$` in the
 password (see [Choosing the admin password](#choosing-the-admin-password)).
 **Login seems to work but you land on the login page again**:
-`COOKIE_SECURE` is `true` while you use `http://`; set it to `false`.
+`COOKIE_SECURE` is `true` while you use `http://`; set it to `auto`.
 **"The form expired"**: your browser blocked cookies for the site, or the
 login page was open for more than an hour; reload it.
 

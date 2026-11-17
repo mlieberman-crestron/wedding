@@ -9,7 +9,7 @@
 //
 // Files in this folder:
 //   app.js     this file: startup, privilege drop, HTTP server, routing,
-//              the / status page, /health, request log, clean shutdown
+//              the /status page, /health, request log, clean shutdown
 //   config.js  settings from environment variables
 //   perms.js   data folder ownership and switching away from root
 //   db.js      open SQLite + numbered schema migrations
@@ -95,7 +95,8 @@ const handleAdmin = createAdmin({ db, auth, config, eventId: EVENT_ID, log });
 // ---------------------------------------------------------------------------
 // 4. Public routes
 // ---------------------------------------------------------------------------
-function handleHome(res) {
+// /status: the technical status page (version, host, visit counter).
+function handleStatus(res) {
   const visits = incrementVisits.get().value;
   const html = views.statusPage(
     {
@@ -160,7 +161,9 @@ function handleHealth(res) {
 // ---------------------------------------------------------------------------
 async function route(req, res, url) {
   const p = url.pathname;
-  if (req.method === 'GET' && p === '/') return handleHome(res);
+  // The site's front door is the save-the-date card (404 until published).
+  if (req.method === 'GET' && p === '/') return handleSaveTheDate(res);
+  if (req.method === 'GET' && p === '/status') return handleStatus(res);
   if (req.method === 'GET' && p === '/health') return handleHealth(res);
   if (req.method === 'GET' && (p === '/save-the-date' || p === '/save-the-date/')) return handleSaveTheDate(res);
   if (req.method === 'GET' && p === '/save-the-date.ics') return handleSaveTheDateIcs(res);

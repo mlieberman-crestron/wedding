@@ -79,14 +79,14 @@ body=$(cat "$TMP")
 if [ "$code" = 200 ] && echo "$body" | grep -q '"status":"ok"'; then r=0; else r=1; fi
 check "/health returns 200 and status ok" "$r" "HTTP $code, body: $body"
 
-# 2. / -> 200
-code=$(fetch /)
+# 2. /status -> 200
+code=$(fetch /status)
 first=$(visits)
 if [ "$code" = 200 ]; then r=0; else r=1; fi
-check "/ returns 200" "$r" "HTTP $code"
+check "/status returns 200" "$r" "HTTP $code"
 
-# 3. counter increases between two loads of /
-code=$(fetch /)
+# 3. counter increases between two loads of /status
+code=$(fetch /status)
 second=$(visits)
 if [ -n "$first" ] && [ -n "$second" ] && [ "$second" -gt "$first" ]; then r=0; else r=1; fi
 check "visit counter increases" "$r" "first=${first:-none} second=${second:-none}"
@@ -103,10 +103,12 @@ for p in /static/style.css /static/import.js; do
   check "$p returns 200" "$r" "HTTP $code"
 done
 
-# 4c. the save-the-date page answers: 200 when published, 404 when not (never a 500)
-code=$(fetch /save-the-date)
-if [ "$code" = 200 ] || [ "$code" = 404 ]; then r=0; else r=1; fi
-check "/save-the-date returns 200 or 404" "$r" "HTTP $code"
+# 4c. the front page (save-the-date card) answers: 200 when published, 404 when not (never a 500)
+for p in / /save-the-date; do
+  code=$(fetch "$p")
+  if [ "$code" = 200 ] || [ "$code" = 404 ]; then r=0; else r=1; fi
+  check "$p returns 200 or 404" "$r" "HTTP $code"
+done
 
 # 5. /admin/guests without logging in -> redirect to the login page
 first_response=$(fetch_first /admin/guests)   # "STATUS LOCATION"

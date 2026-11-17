@@ -117,4 +117,33 @@ function serveStatic(res, urlPath) {
   return true;
 }
 
-module.exports = { SECURITY_HEADERS, send, sendHtml, redirect, readForm, HttpError, serveStatic };
+// --- Behind a proxy (Cloudflare Tunnel) ---------------------------------------
+// Through the tunnel every request reaches the app from the cloudflared
+// container, so req.socket.remoteAddress is the same for every visitor.
+// Cloudflare puts the visitor's real address in CF-Connecting-IP. That header
+// is only believed when trustProxy is on (TRUST_PROXY=true), because anyone
+// who can reach the app directly could send it too. On the home LAN that
+// risk is accepted: it only affects the login lockout.
+
+const firstHeader = (v) => String(Array.isArray(v) ? v[0] : v || '').split(',')[0].trim();
+
+function clientIp(req, trustProxy) {
+  if (trustProxy) {
+    const cf = firstHeader(req.headers['cf-connecting-ip']);
+    if (cf) return cf;
+    const xff = firstHeader(req.headers['x-forwarded-for']);
+    if (xff) return xff;
+  }
+  return (req.socket && req.socket.remoteAddress) || 'unknown';
+}
+
+// true when the browser used HTTPS. cloudflared forwards plain HTTP to the
+// app and says "https" in X-Forwarded-Proto. Faking this header can only make
+// the faker's own cookies Secure (and so break their own login), so it is
+// read even without trustProxy.
+function isHttps(req) {
+  if (req.socket && req.socket.encrypted) return true;
+  return firstHeader(req.headers['x-forwarded-proto']).toLowerCase() === 'https';
+}
+
+module.exports = { SECURITY_HEADERS, send, sendHtml, redirect, readForm, HttpError, serveStatic, clientIp, isHttps };
